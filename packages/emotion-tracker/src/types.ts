@@ -1,7 +1,10 @@
+export type PreSessionEmotion = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
+
 export interface EmotionData {
-  emotion: string;
+  preSessionEmotion: PreSessionEmotion;
   timestamp: number;
   sessionId: string;
+  userId?: string;
 }
 
 export interface DistractionEvent {
@@ -13,13 +16,14 @@ export interface DistractionEvent {
 
 export interface SessionData {
   sessionId: string;
-  preSessionEmotion: string;
+  preSessionEmotion: PreSessionEmotion;
   postSessionEmotion: string;
   performanceRatings: { [key: string]: number };
   distractions: DistractionEvent[];
   startTime: number;
   endTime: number;
   duration: number;
+  userId?: string;
 }
 
 export interface EmotionAnalytics {

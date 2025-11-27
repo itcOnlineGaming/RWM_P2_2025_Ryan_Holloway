@@ -1,10 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { EmotionData, SessionData, DistractionEvent } from './types';
+  import type { EmotionData, SessionData, DistractionEvent, PreSessionEmotion } from './types';
+  import Modal from './Modal.svelte';
 
   // Props for customization
   export let sessionId: string = '';
-  export let customEmotions: string[] = ['Happy', 'Neutral', 'Tired', 'Stressed', 'Focused', 'Anxious'];
+  export let customEmotions: PreSessionEmotion[] = ['Happy', 'Neutral', 'Tired', 'Unwell', 'Down'];
+  export let userId: string = '';
   export let enableMidSessionChecks: boolean = true;
   export let midSessionInterval: number = 15; // minutes
   export let performanceFactors: string[] = ['Productivity', 'Focus', 'Understanding', 'Energy'];
@@ -13,8 +15,8 @@
 
   // State
   let sessionState: 'pre-session' | 'active' | 'post-session' | 'complete' = 'pre-session';
-  let preSessionEmotion: string = '';
-  let postSessionEmotion: string = '';
+  let preSessionEmotion: PreSessionEmotion | '' = '';
+  let postSessionEmotion: PreSessionEmotion | '' = '';
   let performanceRatings: { [key: string]: number } = {};
   let distractions: DistractionEvent[] = [];
   let sessionStartTime: number | null = null;
@@ -28,24 +30,49 @@
   }>();
 
   // Pre-session emotion selection
-  function selectPreEmotion(emotion: string) {
-    preSessionEmotion = emotion;
+  function selectPreEmotion(emotion: any) {
+    preSessionEmotion = emotion as PreSessionEmotion;
+    try {
+      import('./events').then((m) => m.logEmotionSelection(userId || 'anonymous', preSessionEmotion as any));
+    } catch (err) {
+      console.warn('Could not log emotion selection', err);
+    }
+  }
+  function selectPostEmotion(emotion: any) {
+    postSessionEmotion = emotion as PreSessionEmotion;
   }
 
   // Start session
-  function startSession() {
+  let showPreSessionModal = true;
+
+  async function startSession() {
     if (!preSessionEmotion) return;
-    
+
     sessionStartTime = Date.now();
-    sessionState = 'active';
-    
+
     const emotionData: EmotionData = {
-      emotion: preSessionEmotion,
+      preSessionEmotion: preSessionEmotion as import('./types').PreSessionEmotion,
       timestamp: sessionStartTime,
       sessionId
     };
     
-    dispatch('sessionStart', emotionData);
+    // Include userId where available
+    const payload = { ...emotionData, userId } as any;
+    // Persist session start in package storage (can be swapped to server in future)
+    try {
+      // Import the persistence function dynamically to avoid circular import issues
+      const eventsModule = await import('./events');
+      eventsModule.persistSessionStart(payload as any);
+    } catch (err) {
+      console.warn('Could not persist session start in package storage', err);
+    }
+
+    // Dispatch the event after persistence
+    dispatch('sessionStart', payload);
+
+    // Close modal and transition to active session
+    showPreSessionModal = false;
+    sessionState = 'active';
 
     // Set up mid-session checks
     if (enableMidSessionChecks) {
@@ -79,12 +106,12 @@
   }
 
   // Complete session with performance ratings
-  function completeSession() {
+  async function completeSession() {
     if (!postSessionEmotion) return;
 
     const sessionData: SessionData = {
       sessionId,
-      preSessionEmotion,
+      preSessionEmotion: preSessionEmotion as import('./types').PreSessionEmotion,
       postSessionEmotion,
       performanceRatings,
       distractions,
@@ -93,12 +120,18 @@
       duration: Date.now() - sessionStartTime!
     };
 
+    try {
+      const eventsModule = await import('./events');
+      eventsModule.persistSessionEnd({ ...sessionData, userId } as any);
+    } catch (err) {
+      console.warn('Could not persist session end', err);
+    }
     dispatch('sessionEnd', sessionData);
     sessionState = 'complete';
   }
 
   // Update performance rating
-  function updateRating(factor: string, value: number) {
+  function updateRating(factor: any, value: number) {
     performanceRatings[factor] = value;
   }
 
@@ -112,30 +145,40 @@
     sessionStartTime = null;
     if (midSessionTimer) clearInterval(midSessionTimer);
     showMidSessionPopup = false;
+    showPreSessionModal = true;
   }
 </script>
 
 <div class="emotion-tracker" data-theme={theme}>
   {#if sessionState === 'pre-session'}
-    <div class="pre-session">
-      <h2>How are you feeling before starting?</h2>
-      <div class="emotion-grid">
-        {#each customEmotions as emotion}
+    <Modal open={showPreSessionModal} ariaLabelledby="pre-session-heading" on:close={() => { showPreSessionModal = false; }}>
+      <div class="pre-session-modal">
+        <h2 id="pre-session-heading">How are you feeling before starting?</h2>
+        <div class="emotion-grid" role="radiogroup" aria-labelledby="pre-session-heading">
+          {#each customEmotions as emotion}
+            <button
+              class="emotion-btn"
+              class:selected={preSessionEmotion === emotion}
+              on:click={() => selectPreEmotion(emotion)}
+              role="radio"
+              aria-checked={preSessionEmotion === emotion}
+            >
+              {emotion}
+            </button>
+          {/each}
+        </div>
+        <div class="start-wrap">
           <button
-            class="emotion-btn"
-            class:selected={preSessionEmotion === emotion}
-            on:click={() => selectPreEmotion(emotion)}
+            class="start-btn"
+            on:click={startSession}
+            disabled={!preSessionEmotion}
+            aria-disabled={!preSessionEmotion}
           >
-            {emotion}
+            Start Session
           </button>
-        {/each}
+        </div>
       </div>
-      {#if preSessionEmotion}
-        <button class="start-btn" on:click={startSession}>
-          Start Session
-        </button>
-      {/if}
-    </div>
+    </Modal>
   {:else if sessionState === 'active'}
     <div class="active-session">
       <h2>Session in Progress</h2>
@@ -168,7 +211,7 @@
             <button
               class="emotion-btn"
               class:selected={postSessionEmotion === emotion}
-              on:click={() => postSessionEmotion = emotion}
+                on:click={() => selectPostEmotion(emotion)}
             >
               {emotion}
             </button>
@@ -185,10 +228,10 @@
               type="range"
               min="1"
               max="10"
-              value={performanceRatings[factor] || 5}
-              on:input={(e) => updateRating(factor, Number(e.currentTarget.value))}
+              value={performanceRatings[String(factor)] || 5}
+              on:input={(e) => updateRating(String(factor), Number(e.currentTarget.value))}
             />
-            <span>{performanceRatings[factor] || 5}/10</span>
+            <span>{performanceRatings[String(factor)] || 5}/10</span>
           </div>
         {/each}
       </div>
@@ -278,6 +321,14 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
+  }
+
+  .pre-session-modal .start-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .pre-session-modal .start-btn {
+    width: 50%;
   }
 
   .start-btn, .complete-btn {

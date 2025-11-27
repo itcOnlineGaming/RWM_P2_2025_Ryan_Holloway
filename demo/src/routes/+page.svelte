@@ -48,15 +48,31 @@
   }
 
   // Event handlers
-  function handleSessionStart(event: CustomEvent) {
+  async function handleSessionStart(event: CustomEvent) {
     currentSessionId = generateSessionId();
     console.log('Session started:', event.detail);
+    try {
+      const module = await import('@ryanholloway/emotion-tracker');
+      if (module.persistSessionStart) {
+        module.persistSessionStart({ ...event.detail, userId: currentUser });
+      }
+    } catch (err) {
+      console.warn('Could not persist in demo', err);
+    }
   }
 
-  function handleSessionEnd(event: CustomEvent<SessionData>) {
+  async function handleSessionEnd(event: CustomEvent<SessionData>) {
     sessions = [...sessions, event.detail];
     saveSessions();
     console.log('Session completed:', event.detail);
+    try {
+      const module = await import('@ryanholloway/emotion-tracker');
+      if (module.persistSessionEnd) {
+        module.persistSessionEnd({ ...event.detail, userId: currentUser });
+      }
+    } catch (err) {
+      console.warn('Could not call persistSessionEnd in demo', err);
+    }
   }
 
   function handleDistractionLogged(event: CustomEvent) {
@@ -111,7 +127,7 @@
       <div class="tracker-section">
         <EmotionTracker
           sessionId={currentSessionId || generateSessionId()}
-          customEmotions={['Happy', 'Neutral', 'Tired', 'Stressed', 'Focused', 'Anxious', 'Energized']}
+          customEmotions={['Happy', 'Neutral', 'Tired', 'Unwell', 'Down']}
           enableMidSessionChecks={true}
           midSessionInterval={0.5}
           performanceFactors={['Productivity', 'Focus', 'Understanding', 'Energy']}
