@@ -1,4 +1,9 @@
-export type PreSessionEmotion = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
+export type PreSessionEmotion =
+  | "Happy"
+  | "Neutral"
+  | "Tired"
+  | "Unwell"
+  | "Down";
 
 export interface EmotionData {
   preSessionEmotion: PreSessionEmotion;
