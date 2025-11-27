@@ -38,3 +38,10 @@ export interface EmotionAnalytics {
   totalSessions: number;
   averageSessionDuration: number;
 }
+
+export interface MidSessionCheckInEvent {
+  sessionId: string;
+  userId?: string;
+  timestamp: number;
+  distractions: string[]; // ['Phone', 'Social Media', 'Noise'] or ['none']
+}

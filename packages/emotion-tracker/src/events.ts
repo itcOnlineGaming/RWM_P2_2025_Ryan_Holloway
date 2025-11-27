@@ -1,6 +1,8 @@
-import type { EmotionData, SessionData, PreSessionEmotion } from './types';
+import type { EmotionData, SessionData, PreSessionEmotion, MidSessionCheckInEvent } from './types';
 
 const SESSION_STORAGE_PREFIX = 'emotion_tracker_sessions_';
+const CHECKIN_STORAGE_PREFIX = 'emotion_tracker_checkins_';
+const VALID_DISTRACTIONS = ['Phone', 'Social Media', 'Noise', 'none'];
 
 export function isValidPreSessionEmotion(emotion: string): emotion is PreSessionEmotion {
   return ['Happy', 'Neutral', 'Tired', 'Unwell', 'Down'].includes(emotion);
@@ -92,4 +94,31 @@ export function logEmotionSelection(userId: string, emotion: PreSessionEmotion) 
   const counters = stored ? JSON.parse(stored) : {};
   counters[emotion] = (counters[emotion] || 0) + 1;
   localStorage.setItem(key, JSON.stringify(counters));
+}
+
+export function persistMidSessionCheckIn(payload: MidSessionCheckInEvent) {
+  // Validate distractions
+  if (!Array.isArray(payload.distractions) || payload.distractions.length === 0) {
+    throw new Error('Distractions must be a non-empty array');
+  }
+  for (const d of payload.distractions) {
+    if (!VALID_DISTRACTIONS.includes(d)) {
+      throw new Error('Invalid distraction value: ' + d);
+    }
+  }
+  // Store check-in event
+  const key = CHECKIN_STORAGE_PREFIX + (payload.sessionId);
+  const stored = localStorage.getItem(key);
+  const arr = stored ? JSON.parse(stored) : [];
+  arr.push({ ...payload });
+  localStorage.setItem(key, JSON.stringify(arr));
+  // Analytics log
+  console.log('[EmotionTracker] midSessionCheckIn persisted', payload);
+  return payload;
+}
+
+export function getSessionCheckIns(sessionId: string) {
+  const key = CHECKIN_STORAGE_PREFIX + sessionId;
+  const stored = localStorage.getItem(key);
+  return stored ? JSON.parse(stored) : [];
 }
