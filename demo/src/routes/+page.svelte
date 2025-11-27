@@ -1,5 +1,6 @@
 <script lang="ts">
   import { EmotionTracker, calculateAnalytics, getPerformanceInsight, formatDuration } from '@ryanholloway/emotion-tracker';
+  import { MidSessionCheckInModal, persistMidSessionCheckIn } from '@ryanholloway/emotion-tracker';
   import type { SessionData } from '@ryanholloway/emotion-tracker';
 
   // Mock user state (in real app, this would come from authentication)
@@ -11,6 +12,10 @@
   // Session storage
   let sessions: SessionData[] = [];
   let currentSessionId = '';
+
+  // Mid-session check-in
+  let showMidSessionCheckIn = false;
+  let midSessionCheckInSessionId = '';
 
   // Simple authentication
   function login() {
@@ -79,6 +84,16 @@
     console.log('Distraction logged:', event.detail);
   }
 
+  function triggerMidSessionCheckIn(sessionId: string) {
+    midSessionCheckInSessionId = sessionId;
+    showMidSessionCheckIn = true;
+  }
+
+  function handleMidSessionCheckIn(event: CustomEvent) {
+    persistMidSessionCheckIn(event.detail);
+    showMidSessionCheckIn = false;
+  }
+
   // Calculate analytics
   $: analytics = sessions.length > 0 ? calculateAnalytics(sessions) : null;
 </script>
@@ -126,17 +141,21 @@
 
       <div class="tracker-section">
         <EmotionTracker
-          sessionId={currentSessionId || generateSessionId()}
-          customEmotions={['Happy', 'Neutral', 'Tired', 'Unwell', 'Down']}
-          enableMidSessionChecks={true}
-          midSessionInterval={0.5}
-          performanceFactors={['Productivity', 'Focus', 'Understanding', 'Energy']}
-          showAnalytics={true}
-          theme="light"
+          on:distractionLogged={handleDistractionLogged}
           on:sessionStart={handleSessionStart}
           on:sessionEnd={handleSessionEnd}
-          on:distractionLogged={handleDistractionLogged}
         />
+        <button on:click={() => triggerMidSessionCheckIn(currentSessionId)} disabled={!currentSessionId}>
+          Trigger Mid-Session Check-In
+        </button>
+        {#if showMidSessionCheckIn}
+          <MidSessionCheckInModal
+            open={showMidSessionCheckIn}
+            sessionId={midSessionCheckInSessionId}
+            userId={currentUser}
+            on:checkIn={handleMidSessionCheckIn}
+          />
+        {/if}
       </div>
 
       {#if analytics && sessions.length > 0}

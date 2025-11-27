@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import type { EmotionData, SessionData, DistractionEvent, PreSessionEmotion } from './types';
   import Modal from './Modal.svelte';
+  import { logEmotionSelection, persistSessionStart, persistSessionEnd } from './events';
 
   // Props for customization
   export let sessionId: string = '';
@@ -32,11 +33,8 @@
   // Pre-session emotion selection
   function selectPreEmotion(emotion: any) {
     preSessionEmotion = emotion as PreSessionEmotion;
-    try {
-      import('./events').then((m) => m.logEmotionSelection(userId || 'anonymous', preSessionEmotion as any));
-    } catch (err) {
-      console.warn('Could not log emotion selection', err);
-    }
+    // Log analytics immediately, synchronously
+    logEmotionSelection(userId || 'anonymous', preSessionEmotion as any);
   }
   function selectPostEmotion(emotion: any) {
     postSessionEmotion = emotion as PreSessionEmotion;
@@ -55,18 +53,14 @@
       timestamp: sessionStartTime,
       sessionId
     };
-    
     // Include userId where available
     const payload = { ...emotionData, userId } as any;
     // Persist session start in package storage (can be swapped to server in future)
     try {
-      // Import the persistence function dynamically to avoid circular import issues
-      const eventsModule = await import('./events');
-      eventsModule.persistSessionStart(payload as any);
+      persistSessionStart(payload as any);
     } catch (err) {
       console.warn('Could not persist session start in package storage', err);
     }
-
     // Dispatch the event after persistence
     dispatch('sessionStart', payload);
 
@@ -108,7 +102,6 @@
   // Complete session with performance ratings
   async function completeSession() {
     if (!postSessionEmotion) return;
-
     const sessionData: SessionData = {
       sessionId,
       preSessionEmotion: preSessionEmotion as import('./types').PreSessionEmotion,
@@ -119,10 +112,8 @@
       endTime: Date.now(),
       duration: Date.now() - sessionStartTime!
     };
-
     try {
-      const eventsModule = await import('./events');
-      eventsModule.persistSessionEnd({ ...sessionData, userId } as any);
+      persistSessionEnd({ ...sessionData, userId } as any);
     } catch (err) {
       console.warn('Could not persist session end', err);
     }
