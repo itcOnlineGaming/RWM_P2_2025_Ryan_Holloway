@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { EmotionTracker, calculateAnalytics, getPerformanceInsight, formatDuration } from '@ryanholloway/emotion-tracker';
-  import { MidSessionCheckInModal, persistMidSessionCheckIn } from '@ryanholloway/emotion-tracker';
+  import { SessionTimeline } from '@ryanholloway/emotion-tracker';
   import type { SessionData } from '@ryanholloway/emotion-tracker';
 
   // Mock user state (in real app, this would come from authentication)
@@ -11,11 +10,12 @@
 
   // Session storage
   let sessions: SessionData[] = [];
-  let currentSessionId = '';
 
-  // Mid-session check-in
-  let showMidSessionCheckIn = false;
-  let midSessionCheckInSessionId = '';
+  // Session demo state
+  let sessionData: any = null;
+  let timerValue = 0;
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
+  let expandedSessions: Set<number> = new Set();
 
   // Simple authentication
   function login() {
@@ -32,6 +32,7 @@
     username = '';
     password = '';
     sessions = [];
+    sessionData = null;
   }
 
   // Load sessions from localStorage (simulating API)
@@ -39,6 +40,8 @@
     const stored = localStorage.getItem(`sessions_${currentUser}`);
     if (stored) {
       sessions = JSON.parse(stored);
+    } else {
+      sessions = [];
     }
   }
 
@@ -47,67 +50,66 @@
     localStorage.setItem(`sessions_${currentUser}`, JSON.stringify(sessions));
   }
 
-  // Generate new session ID
-  function generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  function handleSessionStart(event: CustomEvent) {
+    console.log('Session started:', event.detail);
+    timerValue = 0;
+    // Start interval to update timer display
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timerValue += 1;
+    }, 1000);
   }
 
-  // Event handlers
-  async function handleSessionStart(event: CustomEvent) {
-    currentSessionId = generateSessionId();
-    console.log('Session started:', event.detail);
-    try {
-      const module = await import('@ryanholloway/emotion-tracker');
-      if (module.persistSessionStart) {
-        module.persistSessionStart({ ...event.detail, userId: currentUser });
-      }
-    } catch (err) {
-      console.warn('Could not persist in demo', err);
+  function handleSessionEnd(event: CustomEvent) {
+    console.log('Session ended');
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
     }
   }
 
-  async function handleSessionEnd(event: CustomEvent<SessionData>) {
+  function handleCheckIn(event: CustomEvent) {
+    console.log('Check-in saved:', event.detail);
+  }
+
+  function handleSessionComplete(event: CustomEvent) {
+    sessionData = event.detail;
+    // Save to user's session history
     sessions = [...sessions, event.detail];
     saveSessions();
-    console.log('Session completed:', event.detail);
-    try {
-      const module = await import('@ryanholloway/emotion-tracker');
-      if (module.persistSessionEnd) {
-        module.persistSessionEnd({ ...event.detail, userId: currentUser });
-      }
-    } catch (err) {
-      console.warn('Could not call persistSessionEnd in demo', err);
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
     }
+    console.log('Session completed and saved:', sessionData);
   }
 
-  function handleDistractionLogged(event: CustomEvent) {
-    console.log('Distraction logged:', event.detail);
+  // Format seconds to MM:SS
+  function formatTimer(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
 
-  function triggerMidSessionCheckIn(sessionId: string) {
-    midSessionCheckInSessionId = sessionId;
-    showMidSessionCheckIn = true;
+  function resetSession() {
+    sessionData = null;
   }
 
-  function handleMidSessionCheckIn(event: CustomEvent) {
-    persistMidSessionCheckIn(event.detail);
-    showMidSessionCheckIn = false;
+  function toggleSessionExpanded(idx: number) {
+    if (expandedSessions.has(idx)) {
+      expandedSessions.delete(idx);
+    } else {
+      expandedSessions.add(idx);
+    }
+    expandedSessions = expandedSessions; // Trigger reactivity
   }
-
-  // Calculate analytics
-  $: analytics = sessions.length > 0 ? calculateAnalytics(sessions) : null;
 </script>
 
 <svelte:head>
-  <title>Emotion Tracker Demo</title>
+  <title>Session Timeline Demo</title>
 </svelte:head>
 
 <main>
-  <header>
-    <h1>📊 Emotion Tracker Demo</h1>
-    <p>Track your emotions and performance during study/work sessions</p>
-  </header>
-
   {#if !isAuthenticated}
     <div class="auth-container">
       <div class="auth-box">
@@ -127,9 +129,7 @@
           />
           <button type="submit">Login</button>
         </form>
-        <p class="auth-note">
-          Demo mode: Use any username/password combination
-        </p>
+        <p class="auth-note">Demo mode: Use any username/password combination</p>
       </div>
     </div>
   {:else}
@@ -139,61 +139,162 @@
         <button on:click={logout} class="logout-btn">Logout</button>
       </div>
 
-      <div class="tracker-section">
-        <EmotionTracker
-          on:distractionLogged={handleDistractionLogged}
+      <div class="demo-container">
+        <SessionTimeline
+          step1Title="How are you feeling right now?"
+          step1Subtitle="Pick your starting mood"
+          step1ButtonText="Begin Session"
+          step2Title="Stay focused!"
+          step2Subtitle="Track any distractions"
+          step2EnableAutoCheckIns={true}
+          step2CheckInIntervalSeconds={60}
+          step2Distractions={['Phone', 'Slack', 'Email', 'Meetings', 'No distractions']}
+          step3Title="Session complete!"
+          step3Subtitle="How'd it go?"
+          step3ButtonText="Finish"
+          step3RatingFactors={['Focus', 'Enjoyment', 'Productivity']}
+          moodOptions={['Happy', 'Focused', 'Neutral', 'Tired', 'Stressed']}
           on:sessionStart={handleSessionStart}
           on:sessionEnd={handleSessionEnd}
-        />
-        <button on:click={() => triggerMidSessionCheckIn(currentSessionId)} disabled={!currentSessionId}>
-          Trigger Mid-Session Check-In
-        </button>
-        {#if showMidSessionCheckIn}
-          <MidSessionCheckInModal
-            open={showMidSessionCheckIn}
-            sessionId={midSessionCheckInSessionId}
-            userId={currentUser}
-            on:checkIn={handleMidSessionCheckIn}
-          />
+          on:checkIn={handleCheckIn}
+          on:sessionComplete={handleSessionComplete}
+        >
+          <!-- Step 2 custom content: Big timer -->
+          <div class="timer-container">
+            <div class="big-timer">
+              <span class="timer-label">Time Elapsed</span>
+              <div class="timer-display">
+                <span class="timer-value">{formatTimer(timerValue)}</span>
+              </div>
+              <p class="timer-instruction">Keep working on your task</p>
+            </div>
+          </div>
+        </SessionTimeline>
+
+        {#if sessionData}
+          <div class="session-results">
+            <h2>Session Complete!</h2>
+            <div class="results-grid">
+              <div class="result-item">
+                <strong>Starting Mood:</strong> {sessionData.startMood}
+              </div>
+              <div class="result-item">
+                <strong>Ending Mood:</strong> {sessionData.endMood}
+              </div>
+              <div class="result-item">
+                <strong>Check-ins:</strong> {sessionData.checkInCount || 0}
+              </div>
+              {#if sessionData.distractions && sessionData.distractions.length > 0}
+                <div class="result-item">
+                  <strong>Distractions:</strong> {sessionData.distractions.join(', ')}
+                </div>
+              {/if}
+              {#if sessionData.ratings}
+                <div class="result-item">
+                  <strong>Ratings:</strong>
+                  <div class="ratings-display">
+                    {#each Object.entries(sessionData.ratings) as [factor, rating]}
+                      <span>{factor}: {rating}/10</span>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+            <button on:click={resetSession} class="reset-btn">Start New Session</button>
+          </div>
         {/if}
       </div>
 
-      {#if analytics && sessions.length > 0}
-        <div class="analytics-section">
-          <h2>📈 Your Analytics</h2>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <h3>Total Sessions</h3>
-              <p class="stat-value">{analytics.totalSessions}</p>
-            </div>
-            <div class="stat-card">
-              <h3>Average Duration</h3>
-              <p class="stat-value">{formatDuration(analytics.averageSessionDuration)}</p>
-            </div>
-          </div>
+      {#if sessions.length > 0}
+        <div class="session-history">
+          <h2>Your Session History</h2>
+          <div class="history-list">
+            {#each sessions.slice().reverse() as session, idx}
+              <div class="history-card">
+                <button
+                  class="history-header"
+                  on:click={() => toggleSessionExpanded(idx)}
+                  aria-expanded={expandedSessions.has(idx)}
+                >
+                  <span class="history-index">Session {sessions.length - idx}</span>
+                  <span class="expand-icon">{expandedSessions.has(idx) ? '▼' : '▶'}</span>
+                </button>
+                
+                <div class="history-summary">
+                  <div class="summary-item">
+                    <span class="label">Mood:</span>
+                    <span class="value">{session.startMood} → {session.endMood}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="label">Check-ins:</span>
+                    <span class="value">{session.checkInCount || 0}</span>
+                  </div>
+                  {#if session.distractions && session.distractions.length > 0}
+                    <div class="summary-item">
+                      <span class="label">Distractions:</span>
+                      <span class="value">{session.distractions.length}</span>
+                    </div>
+                  {/if}
+                </div>
 
-          <div class="emotion-insights">
-            <h3>Emotion Performance Insights</h3>
-            {#each Array.from(analytics.emotionPerformanceMap.entries()) as [emotion, stats]}
-              <div class="insight-card">
-                <h4>{emotion}</h4>
-                <p>Sessions: {stats.sessionCount}</p>
-                <p>Avg Performance: {stats.averagePerformance.toFixed(1)}/10</p>
-                <p>Total Distractions: {stats.totalDistractions}</p>
-                <p class="insight-message">
-                  {getPerformanceInsight(emotion, analytics)}
-                </p>
-              </div>
-            {/each}
-          </div>
+                {#if expandedSessions.has(idx)}
+                  <div class="history-details">
+                    <div class="detail-section">
+                      <h4>Mood & Emotional Data</h4>
+                      <div class="detail-row">
+                        <span class="detail-label">Starting Mood:</span>
+                        <span class="detail-value">{session.startMood}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Ending Mood:</span>
+                        <span class="detail-value">{session.endMood}</span>
+                      </div>
+                    </div>
 
-          <div class="session-history">
-            <h3>Recent Sessions</h3>
-            {#each sessions.slice(-5).reverse() as session}
-              <div class="session-card">
-                <p><strong>Before:</strong> {session.preSessionEmotion} → <strong>After:</strong> {session.postSessionEmotion}</p>
-                <p><strong>Duration:</strong> {formatDuration(session.duration)}</p>
-                <p><strong>Distractions:</strong> {session.distractions.length}</p>
+                    {#if session.distractions && session.distractions.length > 0}
+                      <div class="detail-section">
+                        <h4>Distractions ({session.distractions.length})</h4>
+                        <div class="distraction-list">
+                          {#each session.distractions as distraction}
+                            <span class="distraction-tag">{distraction}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {:else}
+                      <div class="detail-section">
+                        <h4>Distractions</h4>
+                        <p class="no-data">No distractions recorded</p>
+                      </div>
+                    {/if}
+
+                    {#if session.checkInCount}
+                      <div class="detail-section">
+                        <h4>Session Engagement</h4>
+                        <div class="detail-row">
+                          <span class="detail-label">Check-ins:</span>
+                          <span class="detail-value">{session.checkInCount}</span>
+                        </div>
+                      </div>
+                    {/if}
+
+                    {#if session.ratings && Object.keys(session.ratings).length > 0}
+                      <div class="detail-section">
+                        <h4>Session Ratings</h4>
+                        <div class="ratings-list">
+                          {#each Object.entries(session.ratings) as [factor, ratingValue]}
+                            <div class="rating-row">
+                              <span class="rating-label">{factor}</span>
+                              <div class="rating-bar">
+                                <div class="rating-fill" style="width: {(Number(ratingValue) / 10) * 100}%"></div>
+                              </div>
+                              <span class="rating-value">{ratingValue}/10</span>
+                            </div>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>
@@ -207,38 +308,21 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
   }
 
   main {
-    max-width: 1200px;
-    margin: 0 auto;
+    min-height: 100vh;
     padding: 2rem;
-  }
-
-  header {
-    text-align: center;
-    color: white;
-    margin-bottom: 2rem;
-  }
-
-  header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  header p {
-    font-size: 1.2rem;
-    opacity: 0.9;
   }
 
   .auth-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 60vh;
+    min-height: 100vh;
   }
 
   .auth-box {
@@ -253,6 +337,7 @@
   .auth-box h2 {
     margin-top: 0;
     text-align: center;
+    color: #111827;
   }
 
   .auth-box form {
@@ -266,6 +351,7 @@
     border: 1px solid #ddd;
     border-radius: 6px;
     font-size: 1rem;
+    font-family: inherit;
   }
 
   .auth-box button {
@@ -275,6 +361,7 @@
     border: none;
     border-radius: 6px;
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
   }
@@ -291,6 +378,8 @@
   }
 
   .dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 2rem;
@@ -308,6 +397,7 @@
 
   .user-header span {
     font-size: 1.1rem;
+    color: #111827;
   }
 
   .logout-btn {
@@ -317,6 +407,7 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
+    font-weight: 600;
     transition: background 0.2s;
   }
 
@@ -324,100 +415,299 @@
     background: #d32f2f;
   }
 
-  .tracker-section {
+  .demo-container {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
   }
 
-  .analytics-section {
+  .timer-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    padding: 40px 20px;
     background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
-  .analytics-section h2 {
-    margin-top: 0;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
-  }
-
-  .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
+  .big-timer {
     text-align: center;
   }
 
-  .stat-card h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
-    opacity: 0.9;
+  .timer-label {
+    display: block;
+    font-size: 16px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 16px;
   }
 
-  .stat-value {
-    font-size: 2rem;
-    font-weight: bold;
+  .timer-display {
+    margin: 0 0 20px 0;
+  }
+
+  .timer-value {
+    font-size: 80px;
+    font-weight: 700;
+    color: #1f2937;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    letter-spacing: 2px;
+  }
+
+  .timer-instruction {
+    font-size: 14px;
+    color: #9ca3af;
     margin: 0;
   }
 
-  .emotion-insights {
-    margin: 2rem 0;
+  .session-results {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
-  .emotion-insights h3 {
-    margin-bottom: 1rem;
+  .session-results h2 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    color: #111827;
   }
 
-  .insight-card {
-    background: #f5f5f5;
-    padding: 1rem;
+  .results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .result-item {
+    padding: 12px;
+    background: #f3f4f6;
     border-radius: 8px;
-    margin-bottom: 1rem;
-    border-left: 4px solid #667eea;
+    font-size: 14px;
+    color: #374151;
   }
 
-  .insight-card h4 {
-    margin: 0 0 0.5rem 0;
-    color: #667eea;
+  .result-item strong {
+    color: #111827;
+    display: block;
+    margin-bottom: 4px;
   }
 
-  .insight-card p {
-    margin: 0.25rem 0;
-    font-size: 0.9rem;
+  .ratings-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
   }
 
-  .insight-message {
-    font-weight: bold;
-    color: #333;
-    margin-top: 0.5rem !important;
+  .ratings-display span {
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .reset-btn:hover {
+    background: #1d4ed8;
   }
 
   .session-history {
-    margin-top: 2rem;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
-  .session-history h3 {
-    margin-bottom: 1rem;
+  .session-history h2 {
+    margin-top: 0;
+    color: #111827;
   }
 
-  .session-card {
-    background: #fafafa;
-    padding: 1rem;
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .history-card {
+    background: #f9fafb;
     border-radius: 8px;
-    margin-bottom: 0.5rem;
-    border: 1px solid #e0e0e0;
+    border-left: 4px solid #667eea;
+    overflow: hidden;
   }
 
-  .session-card p {
-    margin: 0.25rem 0;
+  .history-header {
+    background: #f3f4f6;
+    padding: 1rem;
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    transition: background 0.2s;
+  }
+
+  .history-header:hover {
+    background: #e5e7eb;
+  }
+
+  .expand-icon {
+    font-size: 0.75rem;
+    color: #6b7280;
+    transition: transform 0.2s;
+  }
+
+  .history-index {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 0.9rem;
+  }
+
+  .history-summary {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+  }
+
+  .summary-item {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .summary-item .label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .summary-item .value {
+    color: #111827;
+    font-weight: 600;
+  }
+
+  .history-details {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .detail-section h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #667eea;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .detail-label {
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .detail-value {
+    color: #111827;
+    font-weight: 600;
+  }
+
+  .distraction-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .distraction-tag {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .no-data {
+    color: #9ca3af;
+    font-style: italic;
+    margin: 0.5rem 0;
+  }
+
+  .ratings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .rating-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .rating-label {
+    min-width: 100px;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+
+  .rating-bar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .rating-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+  }
+
+  .rating-value {
+    min-width: 50px;
+    text-align: right;
+    color: #111827;
+    font-weight: 700;
     font-size: 0.9rem;
   }
 </style>

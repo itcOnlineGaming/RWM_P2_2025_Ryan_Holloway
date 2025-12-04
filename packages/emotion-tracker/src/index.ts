@@ -1,6 +1,5 @@
-export { default as Modal } from './Modal.svelte';
-export { default as EmotionTracker, default } from "./EmotionTracker.svelte";
-export { default as MidSessionCheckInModal } from './MidSessionCheckInModal.svelte';
+export { default as Modal } from "./Modal.svelte";
+export { default as SessionTimeline, default } from "./SessionTimeline.svelte";
 export * from "./types";
 export * from "./analytics";
-export * from './events';
+export * from "./events";
