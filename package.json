@@ -8,6 +8,11 @@
     "build": "npm run build --workspace=packages/emotion-tracker && npm run build --workspace=demo",
     "preview": "npm run preview --workspace=demo",
     "test": "npm run test --workspace=packages/emotion-tracker",
+    "test:vitest": "npm run test --workspace=packages/emotion-tracker",
+    "test:e2e": "npm run test:e2e --workspace=demo",
+    "test:e2e:headed": "npm run test:e2e:headed --workspace=demo",
+    "test:e2e:ui": "npm run test:e2e:ui --workspace=demo",
+    "test:all": "npm run test:vitest && npm run test:e2e",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

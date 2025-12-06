@@ -39,12 +39,12 @@
     step2Title="Stay focused!"
     step2Subtitle="Track any distractions"
     step2EnableAutoCheckIns={true}
-    step2Distractions={['Phone', 'Slack', 'Email', 'Meetings', 'No distractions']}
+    step2Distractions={['Phone', 'Social media', 'Noise', 'People', 'No distractions']}
     step3Title="Session complete!"
     step3Subtitle="How'd it go?"
     step3ButtonText="Finish"
     step3RatingFactors={['Focus', 'Enjoyment', 'Productivity']}
-    moodOptions={['Happy', 'Focused', 'Neutral', 'Tired', 'Stressed']}
+    moodOptions={['Happy', 'Neutral', 'Tired', 'Unwell', 'Down']}
     on:sessionStart={handleSessionStart}
     on:sessionEnd={handleSessionEnd}
     on:checkIn={handleCheckIn}
