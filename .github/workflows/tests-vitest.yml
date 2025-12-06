@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build emotion-tracker package
+        run: npm run build --workspace=packages/emotion-tracker
+
       - name: Run Vitest
         run: npm run test:vitest
         env:
