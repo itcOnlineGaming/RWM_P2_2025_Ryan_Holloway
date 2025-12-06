@@ -179,6 +179,72 @@ npm run build
 npm run preview
 ```
 
+## Storybook Component Library
+
+Storybook is used to develop, test, and document UI components in isolation.
+
+### Running Storybook
+
+Start Storybook locally:
+
+```bash
+npm run storybook
+```
+
+Storybook will open at `http://localhost:6006` by default.
+
+### Available Component Stories
+
+#### 1. **EmotionTracker** (`.storybook/EmotionTracker.stories.ts`)
+   - **Component**: Main emotion tracking component  
+   - **Stories**:
+     - `Default` — Standard configuration with all features
+     - `DarkTheme` — Dark theme variant
+     - `CustomEmotions` — Custom emotion options
+     - `MinimalFactors` — Simplified rating factors
+     - `NoMidSessionChecks` — Without mid-session features
+     - `WorkSession` — Configured for work scenarios
+     - `StudySession` — Configured for study scenarios
+
+#### 2. **Modal** (`.storybook/Modal.stories.ts`)
+   - **Component**: Accessible modal dialog wrapper  
+   - **Stories**:
+     - `Closed` — Modal in closed state
+     - `Open` — Modal in open state
+     - `NoEscapeClose` — Escape key disabled
+     - `NoBackdropClose` — Backdrop click disabled
+     - `NoClosing` — Cannot close (programmatic only)
+     - `WithForm` — Modal with form content
+
+#### 3. **MidSessionCheckInModal** (`.storybook/MidSessionCheckInModal.stories.ts`)
+   - **Component**: Mid-session distraction check-in modal  
+   - **Stories**:
+     - `Closed` — Closed state
+     - `Open` — Open and interactive
+     - `TestMode` — Test mode (modal persists after selection)
+     - `DifferentSessionAndUser` — Different session/user IDs
+     - `MultipleCheckIns` — Multiple check-in tracking
+
+#### 4. **SessionTimeline** (`.storybook/SessionTimeline.stories.ts`)
+   - **Component**: Full 3-step session workflow (pre/during/post)  
+   - **Stories**:
+     - `Default` — Standard session configuration
+     - `WithAutoCheckIns` — Automatic check-ins enabled
+     - `StudySession` — Study-specific configuration
+     - `WorkSession` — Work-specific configuration
+     - `MinimalCustomization` — Simplified version
+     - `ExtendedFactors` — Many performance factors
+
+### Building Storybook
+
+Create a static Storybook build:
+
+```bash
+npm run build-storybook
+```
+
+Output is in `storybook-static/` and can be deployed to any static hosting service.
+
 ## Development Workflow
 
 ### Before Creating a PR
