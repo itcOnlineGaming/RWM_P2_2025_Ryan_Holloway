@@ -1,0 +1,55 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-playwright:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers and system dependencies
+        uses: microsoft/playwright-github-action@v1
+
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+        working-directory: demo
+        env:
+          CI: true
+
+      - name: Upload Playwright Report (on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-node-${{ matrix.node-version }}
+          path: demo/playwright-report/
+          retention-days: 30
+
+      - name: Upload test results (on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-node-${{ matrix.node-version }}
+          path: demo/test-results/
+          retention-days: 30
