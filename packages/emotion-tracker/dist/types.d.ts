@@ -1,0 +1,84 @@
+export type PreSessionEmotion = "Happy" | "Neutral" | "Tired" | "Unwell" | "Down";
+export interface EmotionData {
+    preSessionEmotion: PreSessionEmotion;
+    timestamp: number;
+    sessionId: string;
+    userId?: string;
+}
+export interface DistractionEvent {
+    type: string;
+    timestamp: number;
+    notes?: string;
+    sessionId: string;
+}
+export interface SessionData {
+    sessionId: string;
+    preSessionEmotion: PreSessionEmotion;
+    postSessionEmotion: string;
+    performanceRatings: {
+        [key: string]: number;
+    };
+    distractions: DistractionEvent[];
+    startTime: number;
+    endTime: number;
+    duration: number;
+    userId?: string;
+}
+export interface EmotionAnalytics {
+    emotionPerformanceMap: Map<string, {
+        averagePerformance: number;
+        sessionCount: number;
+        totalDistractions: number;
+    }>;
+    totalSessions: number;
+    averageSessionDuration: number;
+}
+export interface MidSessionCheckInEvent {
+    sessionId: string;
+    userId?: string;
+    timestamp: number;
+    distractions: string[];
+}
+export interface StartSessionProps {
+    title?: string;
+    subtitle?: string;
+    buttonText?: string;
+    moodOptions?: string[];
+    moodEmojis?: Record<string, string>;
+    selectedMood?: string | null;
+    disabled?: boolean;
+}
+export interface StartSessionEvent {
+    startMood: string;
+}
+export interface MoodSelectEvent {
+    mood: string;
+}
+export interface MidSessionCheckInProps {
+    title?: string;
+    subtitle?: string;
+    buttonText?: string;
+    distractions?: string[];
+    distractionEmojis?: Record<string, string>;
+    selectedDistractions?: string[];
+    show?: boolean;
+    disabled?: boolean;
+}
+export interface CheckInEvent {
+    distractions: string[];
+}
+export interface EndSessionProps {
+    title?: string;
+    subtitle?: string;
+    buttonText?: string;
+    moodOptions?: string[];
+    moodEmojis?: Record<string, string>;
+    ratingFactors?: string[];
+    selectedMood?: string;
+    ratings?: Record<string, number>;
+    disabled?: boolean;
+}
+export interface SessionCompleteEvent {
+    mood: string;
+    ratings: Record<string, number>;
+}
