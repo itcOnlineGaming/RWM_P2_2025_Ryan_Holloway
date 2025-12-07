@@ -85,6 +85,11 @@
           <h3>Mid-Session Check-In</h3>
           <p>Test the distraction tracking modal component</p>
         </a>
+        
+        <a href="/end-session" class="menu-card">
+          <h3>End Session</h3>
+          <p>Try the post-session rating and completion component</p>
+        </a>
       </div>
     </div>
   </div>
