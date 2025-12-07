@@ -82,13 +82,13 @@ describe("SessionTimeline", () => {
         },
       });
 
-      const moodButton = container.querySelector(".chip") as HTMLButtonElement;
-      await fireEvent.click(moodButton);
-
       let emittedEvent: any;
       component.$on("sessionStart", (event: any) => {
         emittedEvent = event.detail;
       });
+
+      const moodButton = container.querySelector(".chip") as HTMLButtonElement;
+      await fireEvent.click(moodButton);
 
       const startButton = container.querySelector(
         ".primary-btn"
@@ -278,17 +278,6 @@ describe("SessionTimeline", () => {
         props: {
           step2Distractions: ["Phone"],
           distractionEmojis: { Phone: "📞" },
-        },
-      });
-
-      expect(container).toBeDefined();
-    });
-
-    it("uses custom mood colors when provided", () => {
-      const { container } = render(SessionTimeline, {
-        props: {
-          moodOptions: ["Happy"],
-          moodColors: { Happy: "#FF0000" },
         },
       });
 

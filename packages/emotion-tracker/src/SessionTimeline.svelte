@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy } from 'svelte';
+  import StartSession from './StartSession.svelte';
 
   type MoodType = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
   type Step = 1 | 2 | 3;
@@ -27,13 +28,6 @@
     'Tired': '😴',
     'Unwell': '🤒',
     'Down': '☁️'
-  };
-  export let moodColors: Record<string, string> = {
-    'Happy': '#fff7cc',
-    'Neutral': '#e0f2fe',
-    'Tired': '#fee2e2',
-    'Unwell': '#fee2e2',
-    'Down': '#fee2e2'
   };
   export let distractionEmojis: Record<string, string> = {
     'Phone': '📱',
@@ -112,9 +106,11 @@
   }
 
   // Step 1: Start session
-  function handleStartSession() {
-    if (!startMood) return;
-    dispatch('sessionStart', { startMood });
+  function handleStartSession(event: CustomEvent<{ startMood: string }>) {
+    const { startMood: mood } = event.detail;
+    if (!mood) return;
+    startMood = mood;
+    dispatch('sessionStart', { startMood: mood });
     currentStep = 2;
   }
 
@@ -204,33 +200,16 @@
 
 <div class="timeline-container">
   {#if currentStep === 1}
-    <div class="top-card">
-      <div class="card-tag">STEP 1 · BEFORE</div>
-      <h2 class="card-title">{step1Title}</h2>
-      <p class="card-subtitle">{step1Subtitle}</p>
-
-      <div class="chips-row">
-        {#each moodOptions as mood (mood)}
-          {@const isSelected = startMood === mood}
-          <button
-            class="chip"
-            class:chip--selected={isSelected}
-            on:click={() => (startMood = mood)}
-          >
-            <span class="chip-icon">{moodEmojis[mood] || '😊'}</span>
-            {mood}
-          </button>
-        {/each}
-      </div>
-
-      <button
-        class="primary-btn"
-        disabled={!startMood}
-        on:click={handleStartSession}
-      >
-        {step1ButtonText}
-      </button>
-    </div>
+    <StartSession
+      title={step1Title}
+      subtitle={step1Subtitle}
+      buttonText={step1ButtonText}
+      {moodOptions}
+      {moodEmojis}
+      selectedMood={startMood}
+      on:moodSelect={(e) => (startMood = e.detail.mood)}
+      on:start={handleStartSession}
+    />
   {/if}
 
   <!-- Step 2: During - Top bar -->

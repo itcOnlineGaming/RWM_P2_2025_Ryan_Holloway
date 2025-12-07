@@ -1,4 +1,9 @@
-export type PreSessionEmotion = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
+export type PreSessionEmotion =
+  | "Happy"
+  | "Neutral"
+  | "Tired"
+  | "Unwell"
+  | "Down";
 
 export interface EmotionData {
   preSessionEmotion: PreSessionEmotion;
@@ -44,4 +49,23 @@ export interface MidSessionCheckInEvent {
   userId?: string;
   timestamp: number;
   distractions: string[]; // ['Phone', 'Social Media', 'Noise'] or ['none']
+}
+
+// StartSession Component Types
+export interface StartSessionProps {
+  title?: string;
+  subtitle?: string;
+  buttonText?: string;
+  moodOptions?: string[];
+  moodEmojis?: Record<string, string>;
+  selectedMood?: string | null;
+  disabled?: boolean;
+}
+
+export interface StartSessionEvent {
+  startMood: string;
+}
+
+export interface MoodSelectEvent {
+  mood: string;
 }
