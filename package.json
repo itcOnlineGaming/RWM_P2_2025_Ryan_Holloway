@@ -1,33 +1,43 @@
 {
-  "name": "rwm-p2-emotion-tracker-workspace",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@ryanholloway/emotion-tracker",
+  "version": "0.3.3",
+  "description": "A reusable Svelte component library for tracking emotions and performance metrics during study/work sessions",
   "type": "module",
+  "main": "./packages/emotion-tracker/dist/index.js",
+  "types": "./packages/emotion-tracker/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./packages/emotion-tracker/dist/index.d.ts",
+      "svelte": "./packages/emotion-tracker/dist/index.js",
+      "default": "./packages/emotion-tracker/dist/index.js"
+    },
+    "./src/*": "./packages/emotion-tracker/src/*"
+  },
+  "files": [
+    "packages/emotion-tracker/dist",
+    "packages/emotion-tracker/src",
+    "packages/emotion-tracker/package.json",
+    "packages/emotion-tracker/README.md"
+  ],
   "scripts": {
-    "dev": "npm run dev --workspace=demo",
-    "build": "npm run build --workspace=packages/emotion-tracker && npm run build --workspace=demo",
-    "preview": "npm run preview --workspace=demo",
-    "test": "npm run test --workspace=packages/emotion-tracker",
-    "test:vitest": "npm run test --workspace=packages/emotion-tracker",
-    "test:e2e": "npm run test:e2e --workspace=demo",
-    "test:e2e:headed": "npm run test:e2e:headed --workspace=demo",
-    "test:e2e:ui": "npm run test:e2e:ui --workspace=demo",
-    "test:all": "npm run test:vitest && npm run test:e2e",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build": "npm run build --workspace=packages/emotion-tracker",
+    "test": "npm run test --workspace=packages/emotion-tracker"
   },
   "workspaces": [
-    "packages/*",
-    "demo"
+    "packages/*"
   ],
-  "devDependencies": {
-    "@storybook/addon-essentials": "^7.6.7",
-    "@storybook/addon-interactions": "^7.6.7",
-    "@storybook/addon-links": "^7.6.7",
-    "@storybook/blocks": "^7.6.7",
-    "@storybook/svelte": "^7.6.7",
-    "@storybook/sveltekit": "^7.6.7",
-    "@storybook/test": "^7.6.7",
-    "storybook": "^7.6.7"
-  }
+  "keywords": [
+    "svelte",
+    "emotion-tracker",
+    "srl",
+    "self-regulated-learning",
+    "performance-tracking",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itcOnlineGaming/RWM_P2_2025_Ryan_Holloway.git"
+  },
+  "author": "Ryan Holloway",
+  "license": "MIT"
 }
