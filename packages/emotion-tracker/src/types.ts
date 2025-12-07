@@ -69,3 +69,19 @@ export interface StartSessionEvent {
 export interface MoodSelectEvent {
   mood: string;
 }
+
+// MidSessionCheckIn Component Types
+export interface MidSessionCheckInProps {
+  title?: string;
+  subtitle?: string;
+  buttonText?: string;
+  distractions?: string[];
+  distractionEmojis?: Record<string, string>;
+  selectedDistractions?: string[];
+  show?: boolean;
+  disabled?: boolean;
+}
+
+export interface CheckInEvent {
+  distractions: string[];
+}
