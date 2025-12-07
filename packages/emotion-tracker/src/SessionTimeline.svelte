@@ -2,6 +2,7 @@
   import { createEventDispatcher, onDestroy } from 'svelte';
   import StartSession from './StartSession.svelte';
   import MidSessionCheckIn from './MidSessionCheckIn.svelte';
+  import EndSession from './EndSession.svelte';
 
   type MoodType = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
   type Step = 1 | 2 | 3;
@@ -59,7 +60,7 @@
   let allDistractions: string[] = [];
   let checkInCount = 0;
   let elapsedSeconds = 0;
-  let endMood: string | null = null;
+  let endMood: string = '';
   let showCheckInPrompt = false;
   let ratings: Record<string, number> = {};
   
@@ -139,9 +140,9 @@
   }
 
   // Step 3: Complete session
-  function handleCompleteSession() {
-    if (!endMood || !Object.values(ratings).every(r => r > 0)) return;
-
+  function handleCompleteSession(event: CustomEvent<{ mood: string; ratings: Record<string, number> }>) {
+    const { mood, ratings: endRatings } = event.detail;
+    
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
@@ -155,8 +156,8 @@
       startMood: startMood!,
       distractions: allDistractions,
       checkInCount,
-      endMood,
-      ratings
+      endMood: mood,
+      ratings: endRatings
     });
 
     // Reset component
@@ -166,16 +167,12 @@
     allDistractions = [];
     checkInCount = 0;
     elapsedSeconds = 0;
-    endMood = null;
+    endMood = '';
     showCheckInPrompt = false;
     ratings = step3RatingFactors.reduce((acc, factor) => {
       acc[factor] = 0;
       return acc;
     }, {} as Record<string, number>);
-  }
-
-  function setRating(factor: string, value: number) {
-    ratings[factor] = value;
   }
 </script>
 
@@ -225,73 +222,41 @@
 
   <!-- Step 3: After -->
   {#if currentStep === 3}
-    <div class="top-card">
-      <div class="card-tag">STEP 3 · AFTER</div>
-      <h2 class="card-title">{step3Title}</h2>
-      <p class="card-subtitle">{step3Subtitle}</p>
-
-      <div class="chips-row">
-        {#each moodOptions as mood (mood)}
-          {@const isEndMoodSelected = endMood === mood}
-          <button
-            class="chip"
-            class:chip--selected={isEndMoodSelected}
-            on:click={() => (endMood = mood)}
-          >
-            <span class="chip-icon">{moodEmojis[mood] || '😊'}</span>
-            {mood}
-          </button>
-        {/each}
-      </div>
-
-      <div class="ratings-section">
-        {#each step3RatingFactors as factor (factor)}
-          <div class="rating-row">
-            <span class="rating-label">{factor}</span>
-            <span class="rating-value">{ratings[factor]}/10</span>
-          </div>
-          <div class="rating-dots">
-            {#each Array(10) as _, i (i)}
-              <button
-                class="dot"
-                class:dot--filled={i < ratings[factor]}
-                on:click={() => setRating(factor, i + 1)}
-                aria-label="Rate {factor} as {i + 1}"
-              />
-            {/each}
-          </div>
-        {/each}
-      </div>
-
-      <button
-        class="primary-btn"
-        disabled={!endMood || !Object.values(ratings).every(r => r > 0)}
-        on:click={handleCompleteSession}
-      >
-        {step3ButtonText}
-      </button>
-    </div>
+    <EndSession
+      title={step3Title}
+      subtitle={step3Subtitle}
+      buttonText={step3ButtonText}
+      {moodOptions}
+      {moodEmojis}
+      ratingFactors={step3RatingFactors}
+      bind:selectedMood={endMood}
+      bind:ratings
+      on:sessionComplete={handleCompleteSession}
+    />
   {/if}
 
   <!-- Bottom status bar (Steps 2-3) -->
   {#if currentStep > 1}
-    <div class="bottom-bar">
-      <div class="bottom-inner">
-        <div class="bottom-text">
-          <div class="bottom-text-main">Session in progress</div>
-          <div class="bottom-text-sub">
-            {#if currentStep === 2}
-              Tap "End session" when ready to wrap up
-            {:else if currentStep === 3}
-              Final step: Complete your session
-            {/if}
+    <slot name="bottom-bar" {currentStep} {handleEndSession}>
+      <!-- Default bottom bar -->
+      <div class="bottom-bar">
+        <div class="bottom-inner">
+          <div class="bottom-text">
+            <div class="bottom-text-main">Session in progress</div>
+            <div class="bottom-text-sub">
+              {#if currentStep === 2}
+                Tap "End session" when ready to wrap up
+              {:else if currentStep === 3}
+                Final step: Complete your session
+              {/if}
+            </div>
           </div>
+          <button class="bottom-btn" on:click={handleEndSession}>
+            {currentStep === 2 ? 'End session' : 'Back'}
+          </button>
         </div>
-        <button class="bottom-btn" on:click={handleEndSession}>
-          {currentStep === 2 ? 'End session' : 'Back'}
-        </button>
       </div>
-    </div>
+    </slot>
   {/if}
 </div>
 
@@ -324,39 +289,6 @@
     display: flex;
     flex-direction: column;
     position: relative;
-  }
-
-  /* Top card (Step 1 and Step 3) */
-  .top-card {
-    background: var(--card-bg);
-    border-radius: var(--radius-card);
-    box-shadow: var(--shadow-card);
-    padding: 18px 16px 16px;
-    border: 1px solid var(--border);
-    margin: 16px;
-    margin-bottom: 0;
-  }
-
-  .card-tag {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--primary);
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-
-  .card-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 6px 0;
-    color: var(--text-main);
-  }
-
-  .card-subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 14px;
   }
 
   /* Top bar (Step 2) */
@@ -406,114 +338,6 @@
     flex: 1;
     padding: 16px;
     min-height: 200px;
-  }
-
-  /* Chips */
-  .chips-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .chip {
-    border-radius: var(--radius-chip);
-    background: var(--chip-bg);
-    padding: 7px 12px;
-    font-size: 13px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    color: var(--text-main);
-    white-space: nowrap;
-    transition: all 0.2s ease;
-  }
-
-  .chip:hover {
-    opacity: 0.8;
-  }
-
-  .chip-icon {
-    font-size: 14px;
-  }
-
-  .chip--selected {
-    background: var(--chip-selected);
-    color: var(--chip-selected-text);
-    font-weight: 600;
-  }
-
-  /* Buttons */
-  .primary-btn {
-    width: 100%;
-    border-radius: 999px;
-    font-size: 15px;
-    padding: 12px 16px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.2s ease;
-    background: var(--primary);
-    color: #ffffff;
-  }
-
-  .primary-btn:hover:not(:disabled) {
-    background: #1d4ed8;
-  }
-
-  .primary-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* Ratings section */
-  .ratings-section {
-    margin-bottom: 14px;
-  }
-
-  .rating-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
-
-  .rating-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-main);
-  }
-
-  .rating-value {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-
-  .rating-dots {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 12px;
-  }
-
-  .dot {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #e5e7eb;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .dot:hover {
-    background: #d1d5db;
-  }
-
-  .dot--filled {
-    background: var(--primary);
   }
 
   /* Bottom bar */

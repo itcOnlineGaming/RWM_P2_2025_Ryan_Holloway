@@ -85,3 +85,21 @@ export interface MidSessionCheckInProps {
 export interface CheckInEvent {
   distractions: string[];
 }
+
+// EndSession Component Types
+export interface EndSessionProps {
+  title?: string;
+  subtitle?: string;
+  buttonText?: string;
+  moodOptions?: string[];
+  moodEmojis?: Record<string, string>;
+  ratingFactors?: string[];
+  selectedMood?: string;
+  ratings?: Record<string, number>;
+  disabled?: boolean;
+}
+
+export interface SessionCompleteEvent {
+  mood: string;
+  ratings: Record<string, number>;
+}
