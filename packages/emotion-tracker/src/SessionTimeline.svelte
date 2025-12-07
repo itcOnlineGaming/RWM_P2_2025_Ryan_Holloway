@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy } from 'svelte';
   import StartSession from './StartSession.svelte';
+  import MidSessionCheckIn from './MidSessionCheckIn.svelte';
 
   type MoodType = 'Happy' | 'Neutral' | 'Tired' | 'Unwell' | 'Down';
   type Step = 1 | 2 | 3;
@@ -137,26 +138,6 @@
     currentStep = 3;
   }
 
-  function toggleDistraction(distraction: string) {
-    if (distraction === 'No distractions') {
-      if (selectedDistractions.includes('No distractions')) {
-        selectedDistractions = selectedDistractions.filter(d => d !== 'No distractions');
-      } else {
-        selectedDistractions = ['No distractions'];
-      }
-    } else {
-      if (selectedDistractions.includes('No distractions')) {
-        selectedDistractions = selectedDistractions.filter(d => d !== 'No distractions');
-      }
-
-      if (selectedDistractions.includes(distraction)) {
-        selectedDistractions = selectedDistractions.filter(d => d !== distraction);
-      } else {
-        selectedDistractions = [...selectedDistractions, distraction];
-      }
-    }
-  }
-
   // Step 3: Complete session
   function handleCompleteSession() {
     if (!endMood || !Object.values(ratings).every(r => r > 0)) return;
@@ -230,28 +211,16 @@
     </div>
 
     <!-- Check-in prompt modal -->
-    {#if showCheckInPrompt}
-      <div class="checkin-overlay">
-        <div class="checkin-modal">
-          <h3>Quick distraction check-in</h3>
-          <p>{step2Subtitle}</p>
-          <div class="chips-row">
-            {#each step2Distractions as distraction (distraction)}
-              <button
-                class="chip"
-                class:chip--selected={selectedDistractions.includes(distraction)}
-                on:click={() => toggleDistraction(distraction)}
-              >
-                <span class="chip-icon">{distractionEmojis[distraction] || '📱'}</span>
-                {distraction}
-              </button>
-            {/each}
-          </div>
-          <button class="primary-btn" on:click={handleSaveCheckIn}>Save check-in</button>
-          <button class="ghost-btn" on:click={() => (showCheckInPrompt = false)}>Skip</button>
-        </div>
-      </div>
-    {/if}
+    <MidSessionCheckIn
+      title={step2Title}
+      subtitle={step2Subtitle}
+      distractions={step2Distractions}
+      {distractionEmojis}
+      bind:selectedDistractions
+      show={showCheckInPrompt}
+      on:save={handleSaveCheckIn}
+      on:close={() => (showCheckInPrompt = false)}
+    />
   {/if}
 
   <!-- Step 3: After -->
@@ -477,8 +446,7 @@
   }
 
   /* Buttons */
-  .primary-btn,
-  .ghost-btn {
+  .primary-btn {
     width: 100%;
     border-radius: 999px;
     font-size: 15px;
@@ -488,9 +456,6 @@
     cursor: pointer;
     margin-top: 10px;
     transition: all 0.2s ease;
-  }
-
-  .primary-btn {
     background: var(--primary);
     color: #ffffff;
   }
@@ -502,15 +467,6 @@
   .primary-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .ghost-btn {
-    background: transparent;
-    color: var(--danger);
-  }
-
-  .ghost-btn:hover {
-    opacity: 0.7;
   }
 
   /* Ratings section */
@@ -558,42 +514,6 @@
 
   .dot--filled {
     background: var(--primary);
-  }
-
-  /* Check-in modal overlay */
-  .checkin-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 50;
-  }
-
-  .checkin-modal {
-    background: var(--card-bg);
-    border-radius: var(--radius-card);
-    padding: 24px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  }
-
-  .checkin-modal h3 {
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-main);
-  }
-
-  .checkin-modal p {
-    margin: 0 0 16px 0;
-    font-size: 13px;
-    color: var(--text-muted);
   }
 
   /* Bottom bar */

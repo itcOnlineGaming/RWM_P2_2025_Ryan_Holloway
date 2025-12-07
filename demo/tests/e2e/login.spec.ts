@@ -7,17 +7,17 @@ test.describe("Demo App - Login Flow", () => {
 
   test("should display login form on initial load", async ({ page }) => {
     // Check for login container
-    const authContainer = page.locator(".auth-container");
+    const authContainer = page.locator(".login-container");
     await expect(authContainer).toBeVisible();
 
     // Check for login heading
-    const heading = page.locator("h2");
-    await expect(heading).toContainText("Login");
+    const heading = page.locator("h1");
+    await expect(heading).toContainText("Emotion Tracker Demo");
 
     // Check for input fields
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await expect(usernameInput).toBeVisible();
     await expect(passwordInput).toBeVisible();
@@ -25,7 +25,7 @@ test.describe("Demo App - Login Flow", () => {
   });
 
   test("should show demo mode note", async ({ page }) => {
-    const note = page.locator(".auth-note");
+    const note = page.locator(".note");
     await expect(note).toContainText("Demo mode");
   });
 
@@ -40,23 +40,23 @@ test.describe("Demo App - Login Flow", () => {
   });
 
   test("should successfully login with any credentials", async ({ page }) => {
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("testuser");
     await passwordInput.fill("testpassword");
     await submitButton.click();
 
-    // After login, should see dashboard
-    const userHeader = page.locator(".user-header");
-    await expect(userHeader).toContainText("Welcome, testuser");
+    // After login, should see menu
+    const menuHeader = page.locator(".menu-header");
+    await expect(menuHeader).toContainText("Welcome, testuser!");
   });
 
   test("should display logout button after login", async ({ page }) => {
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("demouser");
     await passwordInput.fill("demopass");
@@ -69,51 +69,51 @@ test.describe("Demo App - Login Flow", () => {
   test("should hide auth container after successful login", async ({
     page,
   }) => {
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("testuser");
     await passwordInput.fill("testpass");
     await submitButton.click();
 
-    const authContainer = page.locator(".auth-container");
+    const authContainer = page.locator(".login-container");
     await expect(authContainer).not.toBeVisible();
   });
 
-  test("should display dashboard after login", async ({ page }) => {
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+  test("should display menu after login", async ({ page }) => {
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("testuser");
     await passwordInput.fill("testpass");
     await submitButton.click();
 
-    const dashboard = page.locator(".dashboard");
-    await expect(dashboard).toBeVisible();
+    const menuContainer = page.locator(".menu-container");
+    await expect(menuContainer).toBeVisible();
   });
 
   test("should clear form on logout and allow re-login", async ({ page }) => {
     // Login
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("user1");
     await passwordInput.fill("pass1");
     await submitButton.click();
 
-    // Wait for dashboard
-    const dashboard = page.locator(".dashboard");
-    await expect(dashboard).toBeVisible();
+    // Wait for menu
+    const menuContainer = page.locator(".menu-container");
+    await expect(menuContainer).toBeVisible();
 
     // Logout
     const logoutButton = page.locator('button:has-text("Logout")');
     await logoutButton.click();
 
     // Should return to login
-    const authContainer = page.locator(".auth-container");
+    const authContainer = page.locator(".login-container");
     await expect(authContainer).toBeVisible();
 
     // Login again with different credentials
@@ -121,13 +121,13 @@ test.describe("Demo App - Login Flow", () => {
     await passwordInput.fill("pass2");
     await submitButton.click();
 
-    const userHeader = page.locator(".user-header");
-    await expect(userHeader).toContainText("user2");
+    const menuHeader = page.locator(".menu-header");
+    await expect(menuHeader).toContainText("user2");
   });
 
   test("should preserve input values during typing", async ({ page }) => {
-    const usernameInput = page.locator('input[placeholder="Username"]') as any;
-    const passwordInput = page.locator('input[placeholder="Password"]') as any;
+    const usernameInput = page.locator('input[id="username"]') as any;
+    const passwordInput = page.locator('input[id="password"]') as any;
 
     const testUsername = "longusername123";
     const testPassword = "complexpassword456";

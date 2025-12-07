@@ -5,17 +5,24 @@ test.describe("Demo App - Session Workflow", () => {
     // Navigate and login
     await page.goto("/");
 
-    const usernameInput = page.locator('input[placeholder="Username"]');
-    const passwordInput = page.locator('input[placeholder="Password"]');
-    const submitButton = page.locator('button:has-text("Login")');
+    const usernameInput = page.locator('input[id="username"]');
+    const passwordInput = page.locator('input[id="password"]');
+    const submitButton = page.locator('button:has-text("Sign In")');
 
     await usernameInput.fill("sessiontestuser");
     await passwordInput.fill("password");
     await submitButton.click();
 
-    // Wait for dashboard to be visible
-    const dashboard = page.locator(".dashboard");
-    await expect(dashboard).toBeVisible();
+    // Wait for menu to be visible
+    const menuContainer = page.locator(".menu-container");
+    await expect(menuContainer).toBeVisible();
+
+    // Navigate to full demo page
+    await page.goto("/full-demo");
+
+    // Wait for page to load
+    const demoContainer = page.locator(".demo-container");
+    await expect(demoContainer).toBeVisible();
   });
 
   test("should display SessionTimeline component", async ({ page }) => {

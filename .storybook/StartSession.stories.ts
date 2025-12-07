@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/svelte";
-import StartSession from "./StartSession.svelte";
+import StartSession from "../packages/emotion-tracker/dist/StartSession.svelte";
 
 const meta = {
   title: "Components/StartSession",
