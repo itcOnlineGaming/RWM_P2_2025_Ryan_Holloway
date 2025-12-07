@@ -2,6 +2,15 @@
 
 A monorepo containing reusable Svelte emotion tracker components and a demo application. This project provides modular components for tracking emotional states and productivity metrics during work/study sessions.
 
+## Repository Structure
+
+This repository has two main branches:
+
+- **`main`** - Full development workspace with demo app, Storybook, and comprehensive testing
+- **`release`** - Clean, installable package branch with only the emotion-tracker components (dist + src)
+
+For using the package in your projects, install from the `release` branch. For contributing or exploring the full codebase, use the `main` branch.
+
 ## Features
 
 - **Modular Component Architecture** - Three independent, reusable components
@@ -94,9 +103,39 @@ Orchestrates the complete 3-step session workflow.
 └── package.json                   # Root workspace configuration
 ```
 
-## Quick Start
+## Installation
 
-### Installation
+### Install from GitHub (Release Branch)
+
+To use this package in your Svelte project, install directly from the `release` branch:
+
+```bash
+npm install github:itcOnlineGaming/RWM_P2_2025_Ryan_Holloway#release
+```
+
+### Using the Components
+
+Once installed, you can import components in two ways:
+
+**Option 1: Import from pre-built dist (recommended)**
+
+```javascript
+import { StartSession, MidSessionCheckIn, EndSession, SessionTimeline } 
+  from '@ryanholloway/emotion-tracker/packages/emotion-tracker/dist'
+```
+
+**Option 2: Import source files directly (requires Svelte configuration)**
+
+```javascript
+import StartSession from '@ryanholloway/emotion-tracker/packages/emotion-tracker/src/StartSession.svelte'
+import MidSessionCheckIn from '@ryanholloway/emotion-tracker/packages/emotion-tracker/src/MidSessionCheckIn.svelte'
+import EndSession from '@ryanholloway/emotion-tracker/packages/emotion-tracker/src/EndSession.svelte'
+import SessionTimeline from '@ryanholloway/emotion-tracker/packages/emotion-tracker/src/SessionTimeline.svelte'
+```
+
+## Quick Start (Development)
+
+### Local Installation
 
 ```bash
 npm install
